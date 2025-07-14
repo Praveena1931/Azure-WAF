@@ -1,49 +1,33 @@
+
 provider "azurerm" {
   features {}
 }
+resource "azurerm_resource_group" "rg" {
+  name     = var.resource_group_name
+  location = var.location
+}
 
-module "WAF" {
-  source                    = "../../modules/waf"
-  resource_group_name = var.resource_group_name
-  resource_group_location = var.location
-  virtual_network_name =  var.vnet_name
+resource "azurerm_virtual_network" "vnet" {
+  name                = var.vnet_name
   address_space       = ["10.0.0.0/16"]
   location            = var.location
-  subnet_name                 = var.subnet_name
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_subnet" "subnet" {
+  name                 = var.subnet_name
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
+}
+
+resource "azurerm_public_ip" "pip" {
   name                = "waf-pip"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
   allocation_method   = "Static"
   sku                 = "Standard"
-  gateway_name        = "example-waf"
-  gatewayconfig_name      = "gwipconfig"
-  subnet_id = azurerm_subnet.subnet.id
-
-# resource "azurerm_resource_group" "rg" {
-#   name     = var.resource_group_name
-#   location = var.location
-# }
-
-# resource "azurerm_virtual_network" "vnet" {
-#   name                = var.vnet_name
-#   address_space       = ["10.0.0.0/16"]
-#   location            = var.location
-#   resource_group_name = azurerm_resource_group.rg.name
-# }
-
-# resource "azurerm_subnet" "subnet" {
-#   name                 = var.subnet_name
-#   resource_group_name  = azurerm_resource_group.rg.name
-#   virtual_network_name = azurerm_virtual_network.vnet.name
-#   address_prefixes     = ["10.0.1.0/24"]
-# }
-
-# resource "azurerm_public_ip" "pip" {
-#   name                = "waf-pip"
-#   location            = var.location
-#   resource_group_name = azurerm_resource_group.rg.name
-#   allocation_method   = "Static"
-#   sku                 = "Standard"
-# }
+}
 
 resource "azurerm_application_gateway" "waf" {
   name                = "example-waf"
